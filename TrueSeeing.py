@@ -2,6 +2,7 @@
 import unicodedata
 import tkinter as tk
 from tkinter import scrolledtext
+from tkinter import filedialog
 from Crypto.Hash import SHA256
 
 
@@ -50,30 +51,30 @@ class TrueSeeingApp:
         pass
 
     def show_true_text(self,event):
-        originalText:str = self.text_area.get("1.0","end")
-        self.text_area2.configure(state='normal')
-        self.text_area2.delete("1.0","end")
+        originalText:str = self.text_area_p1.get("1.0","end")
+        self.text_area_p2.configure(state='normal')
+        self.text_area_p2.delete("1.0","end")
         originalText = originalText[0:len(originalText)-1]
         for c in originalText:
             if c in self.graphical_characters_ascii:
-                self.text_area2.insert("end",c,"n")
-                self.text_area2.tag_add("n","end")
+                self.text_area_p2.insert("end",c,"n")
+                self.text_area_p2.tag_add("n","end")
             elif c in self.graphical_characters_unicode:
-                self.text_area2.insert("end",c,"color1") 
-                self.text_area2.tag_add("color1","end")
-                self.text_area2.tag_config("color1",foreground="blue")
+                self.text_area_p2.insert("end",c,"color1")
+                self.text_area_p2.tag_add("color1","end")
+                self.text_area_p2.tag_config("color1",foreground="blue")
             elif c in self.harmful_format_unicode:
                 real = repr(c)
-                idx = self.text_area2.index("end-1c")
-                self.text_area2.insert("end",real,"color2") 
-                self.text_area2.tag_add("color2","end-1c")
-                self.text_area2.tag_config("color2",foreground="red")
+                idx = self.text_area_p2.index("end-1c")
+                self.text_area_p2.insert("end",real,"color2")
+                self.text_area_p2.tag_add("color2","end-1c")
+                self.text_area_p2.tag_config("color2",foreground="red")
             elif c in self.harmless_format:
-                idx = self.text_area2.index("end-1c")
-                self.text_area2.insert("end",repr(c),"color3") 
-                self.text_area2.tag_add("color3","end-1c")
-                self.text_area2.tag_config("color3",foreground="green")
-        self.text_area2.configure(state='disabled')
+                idx = self.text_area_p2.index("end-1c")
+                self.text_area_p2.insert("end",repr(c),"color3")
+                self.text_area_p2.tag_add("color3","end-1c")
+                self.text_area_p2.tag_config("color3",foreground="green")
+        self.text_area_p2.configure(state='disabled')
 
     # decode the input_text by the chosen Unicode encoding format (UTF-8 or UTF-16)
     def decode_text(self, input_text, encoding):
@@ -101,19 +102,41 @@ class TrueSeeingApp:
         self.clear_panel()
         self.root.title("TrueSeeing")
         self.init_list()
+
+
         # p1
-        self.label_1 = tk.Label(self.root,text="original")
-        self.label_1.pack(padx=10,pady=10)
-        self.text_area = tk.Text(self.root,height=2)
-        self.text_area.pack(padx=10,pady=10)
-        self.text_area.bind("<KeyRelease>",self.show_true_text)
+        self.label_p1 = tk.Label(self.root,text="original")
+        self.label_p1.pack(padx=10,pady=10)
+        self.text_area_p1 = tk.Text(self.root,height=2)
+        self.text_area_p1.pack(padx=10,pady=10)
+
+        # get content from clipboard
+        if self.root.clipboard_get().strip():
+            self.text_area_p1.insert("1.0", self.root.clipboard_get())
+
+        # get content from local file
+        self.button_import_local_file = tk.Button(self.root, text="import local file", command=lambda: self.import_local_file()).pack()
+
+        # get content from typing
+        self.text_area_p1.bind("<KeyRelease>",self.show_true_text)
+
 
         # p2
-        self.label_2 = tk.Label(self.root,text="True text")
-        self.label_2.pack(padx=10,pady=10)
-        self.text_area2 = tk.Text(self.root,height=2)
-        self.text_area2.pack(padx=10,pady=10)
-        self.text_area2.config(state='disabled')
+        self.label_p2 = tk.Label(self.root,text="True text")
+        self.label_p2.pack(padx=10,pady=10)
+        self.text_area_p2 = tk.Text(self.root,height=2)
+        self.text_area_p2.pack(padx=10,pady=10)
+        self.text_area_p2.config(state='disabled')
+
+    # import local file to p1
+    def import_local_file(self):
+        self.local_file_path = filedialog.askopenfilename()
+        if self.local_file_path:
+            with open(self.local_file_path, 'rb') as file:
+                self.local_file_content = file.read()
+                self.text_area_p1.delete("1.0", tk.END)
+                self.text_area_p1.insert("1.0", self.local_file_content)
+
 
     # clear the panel
     def clear_panel(self):
@@ -121,7 +144,7 @@ class TrueSeeingApp:
             widget.destroy()
 
     def check_text(self):
-        text = self.text_area.get("1.0", tk.END).strip()
+        text = self.text_area_p1.get("1.0", tk.END).strip()
 
         # Check for potentially harmful characters
         harmful_characters = self.detect_harmful_characters(text)
