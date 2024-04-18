@@ -29,20 +29,11 @@ class TrueSeeingApp:
             else:
                 self.harmful_format_unicode.append(char)
 
+
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("TrueSeeing")
-        self.init_list()
-        # Create GUI elements
-        self.label_1 = tk.Label(self.root,text="original")
-        self.label_1.grid(row = 0,column=0,padx=10,pady=10)
-        self.text_area = tk.Text(self.root,height=2)
-        self.text_area.grid(row=0,column=1,padx=10,pady=10)
-        self.text_area.bind("<KeyRelease>",self.show_true_text)
-        self.label_2 = tk.Label(self.root,text="True text")
-        self.label_2.grid(row=1,column=0,padx=10,pady=10)
-        self.text_area2 = tk.Text(self.root,height=2)
-        self.text_area2.grid(row=1,column=1,padx=10,pady=10)
+        self.GUI_choose_encoding_format()
+
 
         # self.check_button = tk.Button(self.root, text="Check Text", command=self.check_text)
         # self.check_button.pack(pady=5)
@@ -60,6 +51,7 @@ class TrueSeeingApp:
 
     def show_true_text(self,event):
         originalText:str = self.text_area.get("1.0","end")
+        self.text_area2.configure(state='normal')
         self.text_area2.delete("1.0","end")
         originalText = originalText[0:len(originalText)-1]
         for c in originalText:
@@ -81,13 +73,53 @@ class TrueSeeingApp:
                 self.text_area2.insert("end",repr(c),"color3") 
                 self.text_area2.tag_add("color3","end-1c")
                 self.text_area2.tag_config("color3",foreground="green")
+        self.text_area2.configure(state='disabled')
 
-            
-                
-                
-        
+    # decode the input_text by the chosen Unicode encoding format (UTF-8 or UTF-16)
+    def decode_text(self, input_text, encoding):
+        try:
+            decoded_text = input_text.encode(encoding).decode(encoding)
+            return decoded_text
+        except UnicodeDecodeError:
+            self.display_warning("Error: Unable to decode text with the selected encoding.")
+            return
 
-        
+    # choose encode format panel
+    def GUI_choose_encoding_format(self):
+        self.root.title("Choose Encoding")
+        self.encoding_format = tk.StringVar()
+        self.encoding_format.set("UTF-8")
+
+        self.label = tk.Label(self.root, text="Select Encoding:").pack()
+        self.radio_button1 = tk.Radiobutton(self.root, text="UTF-8", variable=self.encoding_format, value="UTF-8").pack()
+        self.radio_button2 = tk.Radiobutton(self.root, text="UTF-16", variable=self.encoding_format, value="UTF-16").pack()
+        self.button = tk.Button(self.root, text="OK", command=lambda: self.GUI_true_seeing(self.encoding_format.get())).pack()
+
+    # TrueSeeing Panel
+    def GUI_true_seeing(self, encoding_format):
+        # init the panel
+        self.clear_panel()
+        self.root.title("TrueSeeing")
+        self.init_list()
+        # p1
+        self.label_1 = tk.Label(self.root,text="original")
+        self.label_1.pack(padx=10,pady=10)
+        self.text_area = tk.Text(self.root,height=2)
+        self.text_area.pack(padx=10,pady=10)
+        self.text_area.bind("<KeyRelease>",self.show_true_text)
+
+        # p2
+        self.label_2 = tk.Label(self.root,text="True text")
+        self.label_2.pack(padx=10,pady=10)
+        self.text_area2 = tk.Text(self.root,height=2)
+        self.text_area2.pack(padx=10,pady=10)
+        self.text_area2.config(state='disabled')
+
+    # clear the panel
+    def clear_panel(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
     def check_text(self):
         text = self.text_area.get("1.0", tk.END).strip()
 
