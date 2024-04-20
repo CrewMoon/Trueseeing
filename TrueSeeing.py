@@ -39,6 +39,7 @@ class TrueSeeingApp:
 
     def __init__(self):
         self.root = tk.Tk()
+        self.GUI_init()
         self.GUI_choose_encoding_format()
 
 
@@ -61,6 +62,7 @@ class TrueSeeingApp:
         self.text_area_p2.configure(state='normal')
         self.text_area_p2.delete("1.0","end")
         originalText = originalText[0:len(originalText)-1]
+        self.is_benign = False
         for c in originalText:
             if c in self.graphical_characters_ascii:
                 self.text_area_p2.insert("end",c,"n")
@@ -69,6 +71,7 @@ class TrueSeeingApp:
                 self.text_area_p2.insert("end",c,"color1")
                 self.text_area_p2.tag_add("color1","end")
                 self.text_area_p2.tag_config("color1",foreground="blue")
+                self.is_benign = True
             elif c in self.harmful_format_unicode:
                 real = repr(c)
                 idx = self.text_area_p2.index("end-1c")
@@ -80,46 +83,73 @@ class TrueSeeingApp:
                 self.text_area_p2.insert("end",repr(c),"color3")
                 self.text_area_p2.tag_add("color3","end-1c")
                 self.text_area_p2.tag_config("color3",foreground="green")
+                self.is_benign = True
         self.text_area_p2.configure(state='disabled')
+        if (self.is_benign):
+            self.signature_button.config(state="disabled")
+        else:
+            self.signature_button.config(state="normal")
 
-    # decode the input_text by the chosen Unicode encoding format (UTF-8 or UTF-16)
-    def decode_text(self, input_text, encoding):
-        try:
-            decoded_text = input_text.encode(encoding).decode(encoding)
-            return decoded_text
-        except UnicodeDecodeError:
-            self.display_warning("Error: Unable to decode text with the selected encoding.")
-            return
+    # init the GUI panel
+    def GUI_init(self):
+        self.root.title("TrueSeeing")
+        self.root.iconbitmap("TrueSeeingIcon.ico")
+        self.root.geometry("500x500+200+200")
+        self.root.resizable(False, False)
+
+        self.frame_panel_labels = tk.Frame(self.root)
+        self.frame_panel_labels.pack()
+        self.label_encoding_format = tk.Label(self.frame_panel_labels, text="Encoding Format", relief="raised")
+        self.label_encoding_format.pack(side="left")
+        self.label_text_examination = tk.Label(self.frame_panel_labels, text="Text examination", relief="raised")
+        self.label_text_examination.pack(side="left")
+        self.label_signature = tk.Label(self.frame_panel_labels, text="Signature", relief="raised")
+        self.label_signature.pack(side="left")
+
+
 
     # choose encode format panel
     def GUI_choose_encoding_format(self):
-        self.root.title("Choose Encoding")
+        # init the panel
+        self.label_encoding_format.config(relief="sunken")
+
         self.encoding_format = tk.StringVar()
         self.encoding_format.set("UTF-8")
 
-        self.label = tk.Label(self.root, text="Select Encoding:").pack()
-        self.radio_button1 = tk.Radiobutton(self.root, text="UTF-8", variable=self.encoding_format, value="UTF-8").pack()
-        self.radio_button2 = tk.Radiobutton(self.root, text="UTF-16", variable=self.encoding_format, value="UTF-16").pack()
-        self.button = tk.Button(self.root, text="OK", command=lambda: self.GUI_true_seeing(self.encoding_format.get())).pack()
+        self.frame_CEF = tk.Frame(self.root)
+        self.frame_CEF.pack()
+        self.label = tk.Label(self.frame_CEF, text="Select Encoding:")
+        self.label.pack()
+        self.radio_button_UTF_8 = tk.Radiobutton(self.frame_CEF, text="UTF-8", variable=self.encoding_format, value="UTF-8")
+        self.radio_button_UTF_8.pack()
+        self.radio_button_UTF_16 = tk.Radiobutton(self.frame_CEF, text="UTF-16", variable=self.encoding_format, value="UTF-16")
+        self.radio_button_UTF_16.pack()
+        self.button_choose_encoding_format = tk.Button(self.frame_CEF, cursor="hand2", text="OK", command=lambda: self.GUI_text_examination(self.encoding_format.get()))
+        self.button_choose_encoding_format.pack()
 
-    # TrueSeeing Panel
-    def GUI_true_seeing(self, encoding_format):
+
+    # text examination panel
+    def GUI_text_examination(self, encoding_format):
         # init the panel
-        self.clear_panel()
-        self.root.title("TrueSeeing")
+        self.frame_CEF.pack_forget()
+        self.label_encoding_format.config(relief="raised")
+        self.label_text_examination.config(relief="sunken")
         self.init_list()
 
         self.encoding_format = encoding_format
 
+        self.frame_TE = tk.Frame(self.root)
+        self.frame_TE.pack()
         # p1
-        self.label_p1 = tk.Label(self.root,text="original")
-        self.label_p1.pack(padx=10,pady=10)
-        self.text_area_p1 = tk.Text(self.root,height=2)
-        self.text_area_p1.pack(padx=10,pady=10)
+        self.label_p1 = tk.Label(self.frame_TE,text="original")
+        self.label_p1.pack(padx=10, pady=10)
+        self.text_area_p1 = tk.Text(self.frame_TE,height=2)
+        self.text_area_p1.pack(padx=10, pady=10)
 
 
         # get content from local file
-        self.button_import_local_file = tk.Button(self.root, text="import local file", command=lambda: self.import_local_file(self.encoding_format)).pack()
+        self.button_import_local_file = tk.Button(self.frame_TE, text="import local file", command=lambda: self.import_local_file(encoding_format))
+        self.button_import_local_file.pack(padx=10, pady=10)
 
         # get content from typing
         self.text_area_p1.bind("<KeyRelease>",self.show_true_text)
@@ -134,29 +164,41 @@ class TrueSeeingApp:
         #     self.text_area_p1.insert("1.0", self.root.clipboard_get())
 
         # p2
-        self.label_p2 = tk.Label(self.root,text="True text")
-        self.label_p2.pack(padx=10,pady=10)
-        self.text_area_p2 = tk.Text(self.root,height=2)
-        self.text_area_p2.pack(padx=10,pady=10)
+        self.label_p2 = tk.Label(self.frame_TE,text="True text")
+        self.label_p2.pack(padx=10, pady=10)
+        self.text_area_p2 = tk.Text(self.frame_TE,height=2)
+        self.text_area_p2.pack(padx=10, pady=10)
         self.text_area_p2.config(state='disabled')
 
+        self.signature_button = tk.Button(self.frame_TE,text="Generate signature",command=lambda:self.GUI_signature())
+        self.signature_button.pack(padx=10, pady=10)
+
+
+
+    def GUI_signature(self):
+        # init the panel
+        self.frame_TE.pack_forget()
+        self.label_text_examination.config(relief="raised")
+        self.label_signature.config(relief="sunken")
+
+        self.frame_S = tk.Frame(self.root)
+        self.frame_S.pack()
 
         # generate signature
-        self.signature_button = tk.Button(self.root,text="Generate signature",command=lambda:self.generate_signature(self.text_area_p1.get("1.0",tk.END)))
-        self.signature_button.pack(padx=10,pady=10)
-        self.signature_text = tk.Text(self.root,height=3)
+        self.signature_text = tk.Text(self.frame_S,height=3)
         self.signature_text.pack(padx=10,pady=10)
         self.signature_text.config(state='disabled')
 
+        self.generate_signature(self.text_area_p1.get("1.0", tk.END))
 
-        # self.public_key = tk.StringVar(self.root,"Public key:(N = NaN,e = NaN)")
-        # self.public_key_label = tk.Label(self.root,textvariable=self.public_key)
+
+        # self.public_key = tk.StringVar(self.frame_S,"Public key:(N = NaN,e = NaN)")
+        # self.public_key_label = tk.Label(self.frame_S,textvariable=self.public_key)
         # self.public_key_label.pack(padx=10,pady=10)
 
         # show algorithm
-        self.algorithm_label = tk.Label(self.root,text="Algorithm: RSA-FDH: RSA full-domain hash")
+        self.algorithm_label = tk.Label(self.frame_S,text="Algorithm: RSA-FDH: RSA full-domain hash")
         self.algorithm_label.pack(padx=10,pady=10)
-        
 
     # import local file to p1
     def import_local_file(self,encoding_format):
@@ -247,6 +289,7 @@ class TrueSeeingApp:
             public_key = RSA.import_key(public_key)
 
         return private_key, public_key
+
     def sign_text(self,text:str):
         key_bits = 2048
         private_key, public_key = self.generate_keys(key_bits)
@@ -257,8 +300,9 @@ class TrueSeeingApp:
         hash_obj = SHA256.new(text_buffer)
         hashed_integer = int.from_bytes(hash_obj.digest(), byteorder='big')
         signature = pow(hashed_integer, private_key.d, private_key.n)
-        self.algorithm_label
         return signature.to_bytes(key_bits//8,byteorder="big")
+
+
     # only runs until all characters in text belong to category 1 or 3
     def generate_signature(self, text):
         if self.detect_harmful_characters(text):
