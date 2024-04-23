@@ -31,3 +31,6 @@ env.bak/
 *.bak
 *.swp
 .DS_Store
+
+# Keys
+*.pem
