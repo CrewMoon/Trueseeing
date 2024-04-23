@@ -163,7 +163,7 @@ class TrueSeeingApp:
         self.scrollbar_p1.pack(side="right", fill="y")
 
         self.text_area_p1 = tk.Text(self.frame_text_area_p1,height=10, yscrollcommand=self.scrollbar_p1.set)
-        self.text_area_p1.pack()
+        self.text_area_p1.pack(padx=5)
 
         self.scrollbar_p1.config(command=self.text_area_p1.yview)
 
@@ -202,7 +202,7 @@ class TrueSeeingApp:
         self.label_p2.pack(padx=10, pady=10)
         # p2 text area frame
         self.frame_text_area_p2 = tk.Frame(self.frame_TE)
-        self.frame_text_area_p2.pack()
+        self.frame_text_area_p2.pack(padx=5)
 
         self.scrollbar_p2 = tk.Scrollbar(self.frame_text_area_p2)
         self.scrollbar_p2.pack(side="right", fill="y")
@@ -245,8 +245,17 @@ class TrueSeeingApp:
         self.frame_S.pack()
 
         # generate signature
-        self.signature_text = tk.Text(self.frame_S,height=3)
-        self.signature_text.pack(padx=10,pady=10)
+        # signature frame
+        self.frame_signature_text = tk.Frame(self.frame_S)
+        self.frame_signature_text.pack()
+
+        self.scrollbar_signature = tk.Scrollbar(self.frame_signature_text)
+        self.scrollbar_signature.pack(side="right", fill="y")
+
+        self.signature_text = tk.Text(self.frame_signature_text,height=10, yscrollcommand=self.scrollbar_signature.set)
+        self.signature_text.pack(padx=5)
+
+        self.scrollbar_signature.config(command=self.signature_text.yview)
         self.signature_text.config(state="disabled")
 
         self.generate_signature(self.text_area_p1.get("1.0", tk.END))
@@ -266,7 +275,7 @@ class TrueSeeingApp:
         self.label_frame_S_algorithm = tk.LabelFrame(self.frame_S, text="tip")
         self.label_frame_S_algorithm.pack(fill="both", padx=4)
         self.label_tip_algorithm = tk.Label(self.label_frame_S_algorithm,
-                                          text="You can find the file named \"private\" for private key and \"public\" for public key.\n")
+                                          text="You can find the file named \"private.pem\" for private key and \"public.pem\" for public key.\n")
         self.label_tip_algorithm.pack()
 
     # import local file to p1
@@ -288,14 +297,15 @@ class TrueSeeingApp:
             except Exception as e:
                 # 处理其他可能的异常
                 messagebox.showerror("Error", f"Error: {str(e)}")
-    # clear the panel
-    def clear_panel(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
+
 
     def input_from_clipboard(self):
-        self.text_area_p1.insert("1.0", self.root.clipboard_get())
-        self.show_true_text(None)
+        try:
+            clipboard_content = self.root.clipboard_get()
+            self.text_area_p1.insert("1.0", clipboard_content)
+            self.show_true_text(None)
+        except tk.TclError as e:
+            messagebox.showerror("Clipboard Error", "Failed to get clipboard content.")
 
     def check_text(self):
         text = self.text_area_p1.get("1.0", tk.END).strip()
