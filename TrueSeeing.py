@@ -5,7 +5,7 @@ from tkinter import messagebox
 from tkinter import scrolledtext
 from tkinter import filedialog
 from Crypto.PublicKey import RSA
-from Crypto.Signature import pss
+# from Crypto.Signature import pss
 from Crypto.Hash import SHA256
 from Crypto import Random
 import os
@@ -42,14 +42,14 @@ class TrueSeeingApp:
         self.GUI_init()
         self.GUI_choose_encoding_format()
 
+
     def manipulate_input(self, event):
         """
         Check the new input of the p2 text area, and
         only keep the English characters, digits, and punctuation marks 
         """
-        
         # Check if there is actual input; avoid processing triggered by function keys
-        if event.char == "":
+        if event.char == "" and event.keysym not in ["Return", "Enter", "Tab"]:
             return
         
         # Get the new input of the p2 text area
@@ -110,32 +110,28 @@ class TrueSeeingApp:
         originalText = originalText[0:len(originalText)-1] # remove the last character '\n'
 
         for c in originalText:
+            real = repr(c)[1:-1] # Get the string representation of the character
             if c in self.harmless_graphical_characters:
-                self.text_area_p2.insert("end",c,"n")
+                self.text_area_p2.insert("end",real,"n")
                 self.text_area_p2.tag_add("n","end")
 
             elif c in self.harmful_graphical_characters:
-                self.text_area_p2.insert("end",c,"color1")
+                self.text_area_p2.insert("end",real,"color1")
                 self.text_area_p2.tag_add("color1","end")
                 self.text_area_p2.tag_config("color1",foreground="blue")
                 self.is_benign = False # if the text contains other unicode chars, it is not benign
 
             elif c in self.harmful_format_characters:
-                real = repr(c)[1:-1]
-                # idx = self.text_area_p2.index("end-1c")
                 self.text_area_p2.insert("end", real, "color2")
                 self.text_area_p2.tag_add("color2","end-1c")
                 self.text_area_p2.tag_config("color2",foreground="red")
                 self.is_benign = False # if the text contains other format chars, it is not benign
 
             elif c in self.harmless_format_characters:
-                # idx = self.text_area_p2.index("end-1c")
-                real = repr(c)[1:-1]
                 self.text_area_p2.insert("end", real, "color3")
                 self.text_area_p2.tag_add("color3", "end-1c")
                 self.text_area_p2.tag_config("color3",foreground="green")
 
-        # self.text_area_p2.configure(state="disabled")
         if (self.is_benign):
             self.signature_button.config(state="normal")
         else:
@@ -232,8 +228,6 @@ class TrueSeeingApp:
                                       font=(self.default_font, 9),
                                       text="You have to choose one encoding format from UTF-8 and UTF-16.")
         self.label_tip_CEF.pack(padx=5, ipady=5)
-
-
 
 
     # text examination panel
