@@ -1,10 +1,7 @@
-import unicodedata
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import scrolledtext
 from tkinter import filedialog
 from Crypto.PublicKey import RSA
-# from Crypto.Signature import pss
 from Crypto.Hash import SHA256
 from Crypto import Random
 import os
@@ -13,19 +10,23 @@ import os
 class TrueSeeingApp:
 
     def __init__(self):
-        # Set of graphical characters: English letters, digits, and punctuation marks
+        """
+        Initialize the TrueSeeingApp class
+        """
+        # Category 1: Set of graphical characters: English letters, digits, and punctuation marks
         self.harmless_graphical_characters: list = [chr(i) for i in range(32, 127)]
-
-        # Set of harmless format characters: Horizontal Tab, Line Feed, Carriage Return
+        # Category 2: Set of other graphical characters, which are potentially harmful
+        self.harmful_graphical_characters: list  = []
+        # Category 3: Set of harmless format characters: Horizontal Tab, Line Feed, Carriage Return
         self.harmless_format_characters: list = [chr(9), chr(10), chr(13)]
-
+        # Category 4: Set of other format characters, which are potentially harmful
         self.harmful_format_characters: list = []
         self.harmful_format_characters.extend(chr(i) for i in range(0, 9))
         self.harmful_format_characters.extend(chr(i) for i in range(11, 13))
         self.harmful_format_characters.extend(chr(i) for i in range(14, 32))
         self.harmful_format_characters.extend(chr(i) for i in range(127, 160))
-        self.harmful_graphical_characters: list = []
-
+    
+        # Set Category 2 and 4: Add all printable characters to the harmful graphical characters list
         for code_point in range(160, 0x110000):
             char = chr(code_point)
             if char.isprintable():
@@ -33,8 +34,12 @@ class TrueSeeingApp:
             else:
                 self.harmful_format_characters.append(char)
 
+        # Set the default font for the GUI display
         self.default_font = "微软雅黑"
-        self.is_benign = True  # flag to check if the text is benign, default is True
+        # Set the flag to check if the text is benign, default is True
+        self.is_benign = True
+        self.is_error = False
+        # Set the root window of the GUI
         self.root = tk.Tk()
         self.GUI_init()
         self.GUI_choose_encoding_format()
@@ -43,36 +48,52 @@ class TrueSeeingApp:
         """
         Check the new input of the p2 text area, and
         only keep the English characters, digits, and punctuation marks
+        Args:
+            event: The event object, which contains the new input
         """
         # Check if there is actual input; avoid processing triggered by function keys
         if event.char == "" and event.keysym not in ["Return", "Enter", "Tab"]:
             return
+        
+        if event.keysym == "BackSpace":
+            self.is_error = False
+            self.text_area_p2.delete("insert-1c", "insert")
+            self.show_original_text(event)
+            self.check_benign()
+            return "break"
 
         # Get the new input of the p2 text area
-        new_input = self.text_area_p2.get("insert-1c")
+        new_input = event.char
+        if new_input == "\r":
+            new_input = "\n"
 
         # Check if the new input is a harmless format character
         if new_input in self.harmless_format_characters:
-            # Replace the format character with its string representation
-            self.text_area_p2.delete("insert-1c")
-            self.text_area_p2.insert("insert", repr(new_input)[1:-1], "greenColor")
-            self.text_area_p2.tag_add("greenColor", "insert-1c")
             self.text_area_p2.tag_config("greenColor",
                                          foreground="green",
                                          background="#C8C8A9")
+            self.text_area_p2.insert("insert", repr(new_input)[1:-1], "greenColor")
+            
         # Check if the new input is a harmless graphical character
         elif new_input in self.harmless_graphical_characters:
-            self.text_area_p2.delete("insert-1c")
+            self.text_area_p2.tag_config("normalColor",foreground="black")
             self.text_area_p2.insert("insert", repr(new_input)[1:-1], "normalColor")
-            self.text_area_p2.tag_add("normalColor", "insert-1c")
         else:
-            self.text_area_p2.delete("insert-1c")
-            return
+            # Check if the new input is a harmful graphical character
+            return "break"
+        
+        self.show_original_text(event)
+        self.check_benign()
+        return "break"
 
-        # Check if the text is benign
-        if self.is_benign is False:
+
+    def check_benign(self):
+        """
+        Check if the text is benign based on the text in the p1 text area
+        """
+        if self.is_benign is False and self.is_error is False:
             self.is_benign = True
-            for c in self.text_area_p2.get("1.0", "end"):
+            for c in self.text_area_p1.get("1.0", "end"):
                 if c in self.harmful_graphical_characters:
                     self.is_benign = False
                     break
@@ -86,6 +107,8 @@ class TrueSeeingApp:
         """
         Show the original text in the p1 text area
         based on the true text in the p2 text area
+        Args:
+            event: The event object, which contains the new input
         """
         trueText = self.text_area_p2.get("1.0", "end")
         # remove the last character '\n' and evaluate control characters
@@ -93,13 +116,20 @@ class TrueSeeingApp:
             trueText = eval(repr(trueText[0:len(trueText) - 1]).replace('\\\\', '\\'))
         except Exception as e:
             # messagebox.showerror("Error", f"Error: {str(e)}")
+            self.is_error = True
             print(e)
         self.text_area_p1.configure(state="normal")
         self.text_area_p1.delete("1.0", "end")
         self.text_area_p1.insert("end", trueText, "normalColor")
         self.text_area_p1.tag_add("normalColor", "end")
 
+
     def show_true_text(self, event):
+        """
+        Show the true text in the p2 text area based on the original text in the p1 text area
+        Args:
+            event: The event object, which contains the new input
+        """
         originalText: str = self.text_area_p1.get("1.0", "end")
         self.text_area_p2.configure(state="normal")
         self.text_area_p2.delete("1.0", "end")
@@ -109,29 +139,27 @@ class TrueSeeingApp:
             real = repr(c)[1:-1]  # Get the string representation of the character
             if c in self.harmless_graphical_characters:
                 self.text_area_p2.insert("end", real, "harmless_graphical")
-                self.text_area_p2.tag_add("harmless_graphical", "end-1c")
 
             elif c in self.harmful_graphical_characters:
-                self.text_area_p2.insert("end", real, "harmful_graphical")
-                self.text_area_p2.tag_add("harmful_graphical", "end-1c")
                 self.text_area_p2.tag_config("harmful_graphical",
                                              foreground="blue",
                                              background="#83AF9B")
+                self.text_area_p2.insert("end", real, "harmful_graphical")
+                
                 self.is_benign = False  # if the text contains other unicode chars, it is not benign
 
             elif c in self.harmless_format_characters:
-                self.text_area_p2.insert("end", real, "harmless_format")
-                self.text_area_p2.tag_add("harmless_format", "end-1c")
                 self.text_area_p2.tag_config("harmless_format",
                                              foreground="green",
                                              background="#C8C8A9")
+                self.text_area_p2.insert("end", real, "harmless_format")
 
             elif c in self.harmful_format_characters:
-                self.text_area_p2.insert("end", real, "harmful_format")
-                self.text_area_p2.tag_add("harmful_format", "end-1c")
                 self.text_area_p2.tag_config("harmful_format",
                                              foreground="red",
                                              background="#FC9D9A")
+                self.text_area_p2.insert("end", real, "harmful_format")
+                
                 self.is_benign = False  # if the text contains other format chars, it is not benign
 
         if (self.is_benign):
@@ -177,8 +205,12 @@ class TrueSeeingApp:
                                         relief="raised")
         self.label_signature.pack(side="left", ipadx=3, ipady=1)
 
+
     # choose encode format panel
     def GUI_choose_encoding_format(self):
+        """
+        Create the panel to choose the encoding format
+        """
         # init the panel head
         self.label_encoding_format.config(relief="sunken")
 
@@ -230,7 +262,11 @@ class TrueSeeingApp:
 
     # text examination panel
     def GUI_text_examination(self, encoding_format):
-
+        """
+        Create the panel to examine the text
+        Args:
+            encoding_format: The encoding format chosen by the user
+        """
         # init the panel head
         self.frame_CEF.pack_forget()
         self.label_encoding_format.config(relief="raised")
@@ -320,13 +356,14 @@ class TrueSeeingApp:
         self.scrollbar_p2.config(command=self.text_area_p2.yview)
         self.text_area_p2.config(state="disabled")
 
-        self.text_area_p2.bind("<KeyRelease>", self.manipulate_input)
-        self.text_area_p2.bind("<KeyRelease>", self.show_original_text, add=True)
-        # forbid the paste action on p2
-        self.text_area_p2.bind("<Control-v>", lambda f: "break")
+        # Disable the copy and paste function in the text area
+        self.text_area_p2.bind("<Control-v>", lambda event: "break")
+        self.text_area_p2.bind("<Control-v>", lambda event: "break", add=True)
+        # Manipulate the input in the text area
+        self.text_area_p2.bind("<Key>", self.manipulate_input, add=True)
 
-        # p2 tip
-        self.label_frame_TE_p2 = tk.LabelFrame(self.frame_TE,
+        # p2 tips
+        self.label_frame_TE_p2 = tk.LabelFrame(self.frame_TE, 
                                                font=(self.default_font, 9),
                                                text="tips")
         self.label_frame_TE_p2.pack(fill="both", padx=4)
@@ -350,7 +387,11 @@ class TrueSeeingApp:
                                           command=lambda: self.GUI_signature())
         self.signature_button.pack(padx=10, pady=10)
 
+
     def GUI_signature(self):
+        """
+        Create the panel to generate the signature
+        """
         # init the panel
         self.frame_TE.pack_forget()
         self.label_text_examination.config(relief="raised")
@@ -384,10 +425,6 @@ class TrueSeeingApp:
 
         self.generate_signature(self.text_area_p1.get("1.0", tk.END))
 
-        # self.public_key = tk.StringVar(self.frame_S,"Public key:(N = NaN,e = NaN)")
-        # self.public_key_label = tk.Label(self.frame_S,textvariable=self.public_key)
-        # self.public_key_label.pack(padx=10,pady=10)
-
         # show algorithm
         self.algorithm_label = tk.Label(self.frame_S,
                                         font=(self.default_font, 10),
@@ -408,6 +445,11 @@ class TrueSeeingApp:
 
     # import local file to p1
     def import_local_file(self, encoding_format):
+        """
+        Import a local file to the p1 text area
+        Args:
+            encoding_format: The encoding format chosen by the user
+        """
         self.text_area_p1.config(state="normal")
         local_file_path = filedialog.askopenfilename()
         # max file size 10MB
@@ -430,6 +472,9 @@ class TrueSeeingApp:
         self.text_area_p2.config(state="normal")
 
     def input_from_clipboard(self):
+        """
+        Get the content from the clipboard and put it in the p1 text area
+        """
         self.text_area_p1.config(state="normal")
         try:
             clipboard_content = self.root.clipboard_get()
