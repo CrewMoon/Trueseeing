@@ -35,7 +35,7 @@ class TrueSeeingApp:
                 self.harmful_format_characters.append(char)
 
         # Set the default font for the GUI display
-        self.default_font = "微软雅黑"
+        self.default_font = "Arial"
         # Set the flag to check if the text is benign, default is True
         self.is_benign = True
         self.is_error = False
